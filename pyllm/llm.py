@@ -6,6 +6,7 @@ from typing import Optional, List, Tuple, Callable
 from random import randint
 from filelock import FileLock
 from requests import RequestException
+from appdirs import user_cache_dir
 
 from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import ParserBase, RegExParser
@@ -15,7 +16,7 @@ from pyllm.exceptions import TooManyRetries
 
 
 class CacheHandler:
-    CACHE_FILE = "cached_functions.json"
+    CACHE_FILE = os.path.join(user_cache_dir("PyLLM"), "cached_functions.json")
 
     def __init__(self, mode: str = "r"):
         self.mode = mode
