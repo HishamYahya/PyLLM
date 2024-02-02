@@ -15,6 +15,9 @@ from pyllm.types import SamplingParams, Function
 from pyllm.exceptions import TooManyRetries
 
 
+os.makedirs(user_cache_dir("PyLLM"), exist_ok=True)
+
+
 class CacheHandler:
     CACHE_FILE = os.path.join(user_cache_dir("PyLLM"), "cached_functions.json")
 

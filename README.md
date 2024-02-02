@@ -20,7 +20,7 @@ from pyllm import CodeLLM
 
 llm = CodeLLM()
 swap_numbers = llm.def_function(
-    "Swap two input numbers", unit_tests=[((1, 2), (2, 1))], use_cached=False
+    "Swap two input numbers", unit_tests=[((1, 2), (2, 1))]
 )
 print(swap_numbers(20, 40))
 # Output: (40, 20)
