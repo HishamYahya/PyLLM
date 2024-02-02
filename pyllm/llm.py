@@ -74,7 +74,7 @@ class CodeLLM:
         use_cached: bool = True,
         n_retries: int = 1,
         sampling_params: SamplingParams = SamplingParams(),
-    ):
+    ) -> Function:
         model_response = None
         # If cached, read it
         if use_cached:
