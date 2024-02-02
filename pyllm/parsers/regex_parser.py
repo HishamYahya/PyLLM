@@ -28,6 +28,7 @@ class RegExParser(ParserBase):
         for import_statement in import_statements:
             parsed_ast = ast.parse(import_statement, mode="exec")
             code = compile(parsed_ast, filename="import_statements", mode="exec")
+            exec(code, namespace)
 
         # Define all the functions in the LLM output
         function_blocks = []
@@ -37,7 +38,6 @@ class RegExParser(ParserBase):
         for match in matches:
             block = match.group()
             function_blocks.append(block)
-            exec(code, namespace)
 
         for code_str in function_blocks:
             parsed_ast = ast.parse(code_str, mode="exec")
