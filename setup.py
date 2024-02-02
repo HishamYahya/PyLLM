@@ -22,6 +22,7 @@ setup(
         "AI",
         "NLP",
     ],
+    download_url="https://github.com/HishamYahya/PyLLM/archive/refs/tags/v0.0.1.tar.gz",
     packages=find_packages(),
     url="https://github.com/HishamYahya/PyLLM",
     install_requires=["filelock", "Jinja2", "Requests", "appdirs"],
