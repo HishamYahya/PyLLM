@@ -7,6 +7,7 @@ class SamplingParams:
     """
     Generation parameters following OpenAI's API
     """
+
     temperature: Optional[float] = None
     top_p: Optional[float] = None
     n: Optional[int] = None
@@ -21,6 +22,7 @@ class Function:
     """
     Wrapper for generated functions
     """
+
     function: Callable
     source: str
     seed: int
