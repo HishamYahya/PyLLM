@@ -4,7 +4,7 @@ with open("README.md") as f:
     long_description = f.read()
 
 setup(
-    name="pyllm",
+    name="pyllm-code",
     version="0.0.1",
     author="Hisham Alyahya",
     author_email="Hishamaalyahya@gmail.com",
