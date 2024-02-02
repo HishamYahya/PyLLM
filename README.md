@@ -9,7 +9,7 @@ PyLLM harnesses the power of Large Language Models (LLMs) to generate and execut
 
 ## Installation
 ```
-pip install pyllm
+pip install pyllm-code
 ```
 
 ## Quick Start
