@@ -1,6 +1,7 @@
 import json
 import os
 
+from dataclasses import asdict
 from typing import Optional, List, Tuple, Callable
 from random import randint
 from filelock import FileLock
@@ -71,6 +72,7 @@ class CodeLLM:
         unit_tests: Optional[List[Tuple]] = None,
         use_cached: bool = True,
         n_retries: int = 1,
+        sampling_params: SamplingParams = SamplingParams(),
     ):
 
         model_response = None
@@ -93,10 +95,12 @@ class CodeLLM:
                 unit_tests=unit_tests,
             )
             seed = randint(0, 2 ** 62)
+            sampling_params.seed = seed
             for _ in range(n_retries):
                 try:
+
                     model_response = self.client.query(
-                        formatted_prompt, params=SamplingParams(seed=seed)
+                        formatted_prompt, params=sampling_params
                     )
                 except RequestException:
                     # retry if server fails to give 200 response
@@ -127,7 +131,7 @@ class CodeLLM:
 
         new_cache[prompt] = {
             "model_response": model_response,
-            "seed": seed,
+            "sampling_params": asdict(sampling_params),
             "parser": self.parser.__class__.__name__,
         }
 
