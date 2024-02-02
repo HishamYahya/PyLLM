@@ -74,7 +74,6 @@ class CodeLLM:
         n_retries: int = 1,
         sampling_params: SamplingParams = SamplingParams(),
     ):
-
         model_response = None
         # If cached, read it
         if use_cached:
@@ -82,7 +81,7 @@ class CodeLLM:
                 cache = json.load(f)
                 if prompt in cache:
                     model_response = cache[prompt]["model_response"]
-                    seed = cache[prompt]["seed"]
+                    sampling_params = cache[prompt]["sampling_params"]
                     function = self.parser.parse_function(model_response)
 
         # Query the model if not cached
@@ -102,6 +101,7 @@ class CodeLLM:
                     model_response = self.client.query(
                         formatted_prompt, params=sampling_params
                     )
+                    sampling_params = asdict(sampling_params)
                 except RequestException:
                     # retry if server fails to give 200 response
                     continue
@@ -131,7 +131,7 @@ class CodeLLM:
 
         new_cache[prompt] = {
             "model_response": model_response,
-            "sampling_params": asdict(sampling_params),
+            "sampling_params": sampling_params,
             "parser": self.parser.__class__.__name__,
         }
 
@@ -142,5 +142,5 @@ class CodeLLM:
             function=function,
             source=model_response,
             model_name=self.client.model_name,
-            seed=seed,
+            sampling_params=sampling_params,
         )
