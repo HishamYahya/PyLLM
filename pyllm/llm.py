@@ -64,7 +64,7 @@ class CodeLLM:
             else:
                 assert function(x) == y
 
-    def function(
+    def def_function(
         self,
         prompt: str,
         input_types: Optional[List] = None,

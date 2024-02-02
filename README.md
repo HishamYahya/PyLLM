@@ -19,7 +19,7 @@ Here's a simple example to get you started with PyLLM. The following code genera
 from PyLLM import CodeLLM
 
 llm = CodeLLM()
-swap_numbers = llm.function(
+swap_numbers = llm.def_function(
     "Swap two input numbers", unit_tests=[((1, 2), (2, 1))], use_cached=False
 )
 print(swap_numbers(20, 40))
@@ -36,7 +36,7 @@ from PyLLM import CodeLLM
 llm = CodeLLM()
 
 # Generate a function
-my_function = llm.function(
+my_function = llm.def_function(
     "Function description here",
     unit_tests=[("input_example", "expected_output")],
     use_cached=True  # Set to False to disable caching
