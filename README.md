@@ -16,7 +16,7 @@ pip install pyllm
 Here's a simple example to get you started with PyLLM. The following code generates a function to swap two numbers:
 
 ```
-from PyLLM import CodeLLM
+from pyllm import CodeLLM
 
 llm = CodeLLM()
 swap_numbers = llm.def_function(
@@ -30,7 +30,7 @@ print(swap_numbers(20, 40))
 To generate a function using PyLLM, create a CodeLLM instance and use the function method with the desired description and unit tests:
 
 ```
-from PyLLM import CodeLLM
+from pyllm import CodeLLM
 
 # Initialize the LLM interface
 llm = CodeLLM()
