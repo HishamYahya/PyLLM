@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 
 from dataclasses import asdict
 from typing import Optional, List, Tuple, Callable
@@ -64,9 +65,12 @@ class CodeLLM:
     def _unit_test(self, function: Callable, unit_tests: List[Tuple], *args):
         for x, y in unit_tests:
             if type(x) is tuple:
-                assert function(*x) == y
+                yhat = function(*x)
             else:
-                assert function(x) == y
+                yhat = function(x)
+
+            error_message = f"Unit test {x} -> {y} failed, got {yhat} instead."
+            assert yhat == y, error_message
 
     def def_function(
         self,
@@ -103,28 +107,34 @@ class CodeLLM:
             )
             seed = randint(0, 2 ** 62)
             sampling_params.seed = seed
-            for _ in range(n_retries):
+            for cur_try in range(n_retries):
                 try:
 
                     model_response = self.client.query(
                         formatted_prompt, params=sampling_params
                     )
                     sampling_params = asdict(sampling_params)
-                except RequestException:
+                    
+                except RequestException as e:
                     # retry if server fails to give 200 response
+                    error_message = json.loads(e.args[0].decode())
+                    logging.warning(f'Try #{cur_try}, model query failed: {error_message}')
                     continue
 
                 try:
                     function = self.parser.parse_function(model_response)
-                except SyntaxError:
+                except SyntaxError as e:
                     # retry if parsing fails
+                    error_message = e.msg
+                    logging.warning(f'Try #{cur_try}, function parsing failed: {e}')
                     continue
 
                 try:
                     if unit_tests:
                         self._unit_test(function, unit_tests)
-                except AssertionError:
+                except AssertionError as e:
                     # retry if any unit test fails
+                    logging.warning(f'Try #{cur_try}, unit testing failed: {e}')
                     continue
 
                 # Break when code passes all tests
