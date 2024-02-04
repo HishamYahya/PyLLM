@@ -54,12 +54,20 @@ class CacheHandler:
 class CodeLLM:
     def __init__(
         self,
-        client: Client = OpenAIChatClient(),
-        parser: ParserBase = RegExParser(),
-        prompt_template: PromptTemplate = PromptTemplate(),
+        client: Optional[Client] = None,
+        parser: Optional[ParserBase] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
+        if client is None:
+            client = OpenAIChatClient()
         self.client = client
+
+        if parser is None:
+            parser = RegExParser()
         self.parser = parser
+
+        if prompt_template is None:
+            prompt_template = PromptTemplate()
         self.prompt_template = prompt_template
 
     def _unit_test(self, function: Callable, unit_tests: List[Tuple], *args):
