@@ -79,6 +79,7 @@ class CodeLLM:
         sampling_params: SamplingParams = SamplingParams(),
     ) -> Function:
         model_response = None
+        parser = self.parser
         # If cached, read it
         if use_cached:
             with CacheHandler("r") as f:
@@ -86,7 +87,10 @@ class CodeLLM:
                 if prompt in cache:
                     model_response = cache[prompt]["model_response"]
                     sampling_params = cache[prompt]["sampling_params"]
-                    function = self.parser.parse_function(model_response)
+                    from pyllm import parsers
+
+                    parser = getattr(parsers, cache[prompt]["parser"])()
+                    function = parser.parse_function(model_response)
 
         # Query the model if not cached
         if model_response is None:
@@ -136,7 +140,7 @@ class CodeLLM:
         new_cache[prompt] = {
             "model_response": model_response,
             "sampling_params": sampling_params,
-            "parser": self.parser.__class__.__name__,
+            "parser": parser.__class__.__name__,
         }
 
         with CacheHandler("w") as f:
@@ -147,4 +151,5 @@ class CodeLLM:
             source=model_response,
             model_name=self.client.model_name,
             sampling_params=sampling_params,
+            parser=parser,
         )
