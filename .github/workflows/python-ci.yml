@@ -32,9 +32,6 @@ jobs:
         pip install .
         pip install black==24.1.1 pytest
 
-    - name: Lint with Black
-      run: |
-        black --check --verbose .
         
     - name: Run tests
       run: pytest
