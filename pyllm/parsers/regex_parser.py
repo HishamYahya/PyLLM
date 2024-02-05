@@ -44,7 +44,7 @@ class RegExParser(ParserBase):
 
         # import all needed packages provided by the LLM
         import_statements = []
-        import_pattern = r"(import .*)\n"
+        import_pattern = r"(from [\w\.]+ import [\w\., ]+)|(import [\w\.]+(?:, [\w\.]+)*)"
         matches = re.finditer(import_pattern, input_string, re.MULTILINE)
 
         for match in matches:
