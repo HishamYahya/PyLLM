@@ -1,11 +1,13 @@
 from setuptools import setup, find_packages
 
+version = "0.0.2"
+
 with open("README.md") as f:
     long_description = f.read()
 
 setup(
     name="pyllm-code",
-    version="0.0.1",
+    version=version,
     author="Hisham Alyahya",
     author_email="Hishamaalyahya@gmail.com",
     license="MIT",
@@ -22,7 +24,7 @@ setup(
         "AI",
         "NLP",
     ],
-    download_url="https://github.com/HishamYahya/PyLLM/archive/refs/tags/v0.0.1.tar.gz",
+    download_url=f"https://github.com/HishamYahya/PyLLM/archive/refs/tags/v{version}.tar.gz",
     packages=find_packages(),
     url="https://github.com/HishamYahya/PyLLM",
     install_requires=["filelock", "Jinja2", "Requests", "appdirs", "pytest"],
