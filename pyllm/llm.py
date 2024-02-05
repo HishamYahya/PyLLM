@@ -20,44 +20,99 @@ os.makedirs(user_cache_dir("PyLLM"), exist_ok=True)
 
 
 class CacheHandler:
-    CACHE_FILE = os.path.join(user_cache_dir("PyLLM"), "cached_functions.json")
+    """
+    Manages access to a cache file with thread-safe read and write operations.
+    
+    This class ensures that the cache file is created if it doesn't exist and
+    handles the locking mechanism to avoid concurrent write conflicts.
+    
+    Attributes:
+        _CACHE_FILE (str): The path to the cache file used for storing function
+            definitions and responses.
+    
+    Args:
+        mode (str): The mode in which to open the cache file ('r' for read,
+            'w' for write, etc.). Defaults to 'r'.
+    """
+
+    _CACHE_FILE = os.path.join(user_cache_dir("PyLLM"), "cached_functions.json")
 
     def __init__(self, mode: str = "r"):
         self.mode = mode
 
     def __enter__(self):
-        self.lock = FileLock(f"{self.CACHE_FILE}.lock")
+        """
+        Manages access to a cache file with thread-safe read and write operations.
+        
+        This class ensures that the cache file is created if it doesn't exist and
+        handles the locking mechanism to avoid concurrent write conflicts.
+        
+        Attributes:
+            _CACHE_FILE (str): The path to the cache file used for storing function
+                definitions and responses.
+        
+        Args:
+            mode (str): The mode in which to open the cache file ('r' for read,
+                'w' for write, etc.). Defaults to 'r'.
+        """
+        self.lock = FileLock(f"{self._CACHE_FILE}.lock")
         self.lock.acquire()
         try:
-            if not os.path.exists(self.CACHE_FILE):
-                with open(self.CACHE_FILE, "w") as f:
+            if not os.path.exists(self._CACHE_FILE):
+                with open(self._CACHE_FILE, "w") as f:
                     json.dump({}, f)
             else:
                 try:
-                    with open(self.CACHE_FILE, "r") as f:
+                    with open(self._CACHE_FILE, "r") as f:
                         json.load(f)
                 # If the file is corrupted, empty it
                 except json.JSONDecodeError:
-                    with open(self.CACHE_FILE, "w") as f:
+                    with open(self._CACHE_FILE, "w") as f:
                         json.dump({}, f)
         finally:
             self.lock.release()
 
-        self.file = open(self.CACHE_FILE, self.mode)
+        self.file = open(self._CACHE_FILE, self.mode)
         return self.file
 
     def __exit__(self, *_):
+        """
+        Closes the cache file and releases the file lock on exiting the
+        context manager.
+        """
         self.file.close()
         self.lock.release()
 
 
 class CodeLLM:
+    """
+    Facilitates the definition of functions using a language model, with
+    capabilities to cache responses, parse model outputs, and validate through
+    unit tests.
+    
+    Attributes:
+        client (Client): The client interface to query the language model.
+        parser (ParserBase): The parser to convert model responses into
+            executable functions.
+        prompt_template (PromptTemplate): The template used to format prompts
+            sent to the model.
+    """
+
     def __init__(
         self,
         client: Optional[Client] = None,
         parser: Optional[ParserBase] = None,
         prompt_template: Optional[PromptTemplate] = None,
     ):
+        """
+        Args:
+            client (Optional[Client]): A client for interacting with the language
+                model. Defaults to OpenAIChatClient if none is provided.
+            parser (Optional[ParserBase]): A parser for interpreting model
+                responses. Defaults to RegExParser if none is provided.
+            prompt_template (Optional[PromptTemplate]): A template for generating
+                prompts. Defaults to PromptTemplate if none is provided.
+        """
         if client is None:
             client = OpenAIChatClient()
         self.client = client
@@ -70,7 +125,18 @@ class CodeLLM:
             prompt_template = PromptTemplate()
         self.prompt_template = prompt_template
 
-    def _unit_test(self, function: Callable, unit_tests: List[Tuple], *args):
+    def _unit_test(self, function: Callable, unit_tests: List[Tuple]):
+        """
+        Executes unit tests on a given function to validate its correctness.
+        
+        Args:
+            function (Callable): The function to be tested.
+            unit_tests (List[Tuple]): A list of tuples, where each tuple
+                contains input(s) and the expected output.        
+        Raises:
+            AssertionError: If a unit test fails, indicating that the function
+                did not produce the expected output.
+        """
         for x, y in unit_tests:
             if type(x) is tuple:
                 yhat = function(*x)
@@ -90,6 +156,30 @@ class CodeLLM:
         n_retries: int = 1,
         sampling_params: SamplingParams = SamplingParams(),
     ) -> Function:
+        """
+        Defines a function based on a given prompt, optionally using cached
+        responses, and validates the function through unit testing.
+        
+        Args:
+            prompt (str): The prompt describing the function to be defined.
+            input_types (Optional[List]): A list of input types for the function.
+            output_types (Optional[List]): A list of output types for the function.
+            unit_tests (Optional[List[Tuple]]): A list of tuples for unit testing
+                the function, where each tuple contains input(s) and expected output.
+            use_cached (bool): Whether to use cached responses. Defaults to True.
+            n_retries (int): The number of retries if querying the model or
+                parsing the response fails. Defaults to 1.
+            sampling_params (SamplingParams): Parameters for sampling the model's
+                response. Defaults to an instance of SamplingParams with default values.
+        
+        Returns:
+            Function: A Function object encapsulating the defined function,
+                its source model response, and metadata.
+        
+        Raises:
+            TooManyRetries: If the number of retries exceeds `n_retries` without
+                successful definition and validation of the function.
+        """
         model_response = None
         parser = self.parser
         # If cached, read it
@@ -122,11 +212,13 @@ class CodeLLM:
                         formatted_prompt, params=sampling_params
                     )
                     sampling_params = asdict(sampling_params)
-                    
+
                 except RequestException as e:
                     # retry if server fails to give 200 response
                     error_message = json.loads(e.args[0].decode())
-                    logging.warning(f'Try #{cur_try}, model query failed: {error_message}')
+                    logging.warning(
+                        f"Try #{cur_try}, model query failed: {error_message}"
+                    )
                     continue
 
                 try:
@@ -134,7 +226,7 @@ class CodeLLM:
                 except SyntaxError as e:
                     # retry if parsing fails
                     error_message = e.msg
-                    logging.warning(f'Try #{cur_try}, function parsing failed: {e}')
+                    logging.warning(f"Try #{cur_try}, function parsing failed: {e}")
                     continue
 
                 try:
@@ -142,7 +234,7 @@ class CodeLLM:
                         self._unit_test(function, unit_tests)
                 except AssertionError as e:
                     # retry if any unit test fails
-                    logging.warning(f'Try #{cur_try}, unit testing failed: {e}')
+                    logging.warning(f"Try #{cur_try}, unit testing failed: {e}")
                     continue
 
                 # Break when code passes all tests
