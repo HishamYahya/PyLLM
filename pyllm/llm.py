@@ -206,11 +206,12 @@ class CodeLLM:
             seed = randint(0, 2 ** 62)
             sampling_params.seed = seed
             for cur_try in range(n_retries):
+                logging.debug(f"Try {cur_try}")
                 try:
-
                     model_response = self.client.query(
-                        formatted_prompt, params=sampling_params
+                        formatted_prompt, sampling_params=sampling_params
                     )
+                    logging.debug("Model response: ", model_response)
                     sampling_params = asdict(sampling_params)
 
                 except RequestException as e:
