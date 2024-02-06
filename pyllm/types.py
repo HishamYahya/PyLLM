@@ -12,13 +12,13 @@ class SamplingParams:
     Generation parameters following OpenAI's API
     """
 
-    temperature: Optional[float] = None
-    top_p: Optional[float] = None
-    n: Optional[int] = None
+    temperature: float = 1.0
+    top_p: float = 1.0
+    n: int = 1
     stop: Optional[Union[str, List[str]]] = None
     max_tokens: Optional[int] = None
-    presence_penalty: Optional[float] = None
-    frequency_penalty: Optional[float] = None
+    presence_penalty: float = 0.0
+    frequency_penalty: float = 0.0
     seed: Optional[int] = None
 
 
