@@ -83,7 +83,7 @@ class Function:
                 function. If multiple functions are present, returns the first one.
         """
 
-        pattern = r"(def .+:\n(?:\s+.+\n)*)"
+        pattern = r"(def .+:.*\n(?:\s+.+\n)*)"
         return re.findall(pattern, self.source)[0]
 
     def __repr__(self):
