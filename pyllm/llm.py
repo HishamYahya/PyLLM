@@ -203,9 +203,9 @@ class CodeLLM:
                 output_types=output_types,
                 unit_tests=unit_tests,
             )
-            seed = randint(0, 2 ** 62)
-            sampling_params.seed = seed
             for cur_try in range(n_retries):
+                seed = randint(0, 2 ** 62)
+                sampling_params.seed = seed
                 logging.debug(f"Try {cur_try}")
                 try:
                     model_response = self.client.query(
