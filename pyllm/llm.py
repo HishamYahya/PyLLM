@@ -188,7 +188,7 @@ class CodeLLM:
                 cache = json.load(f)
                 if prompt in cache:
                     model_response = cache[prompt]["model_response"]
-                    sampling_params = cache[prompt]["sampling_params"]
+                    sampling_params = SamplingParams(**cache[prompt]["sampling_params"])
                     from pyllm import parsers
 
                     parser = getattr(parsers, cache[prompt]["parser"])()
@@ -212,8 +212,6 @@ class CodeLLM:
                         formatted_prompt, sampling_params=sampling_params
                     )
                     logging.debug("Model response: ", model_response)
-                    sampling_params = asdict(sampling_params)
-
                 except RequestException as e:
                     # retry if server fails to give 200 response
                     error_message = json.loads(e.args[0].decode())
@@ -250,7 +248,7 @@ class CodeLLM:
 
         new_cache[prompt] = {
             "model_response": model_response,
-            "sampling_params": sampling_params,
+            "sampling_params": asdict(sampling_params),
             "parser": parser.__class__.__name__,
         }
 
