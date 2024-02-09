@@ -13,7 +13,7 @@ from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import ParserBase, RegExParser
 from pyllm.templates import PromptTemplate
 from pyllm.types import SamplingParams, Function
-from pyllm.exceptions import TooManyRetries
+from pyllm.exceptions import TooManyRetries, NothingToParseError
 
 
 os.makedirs(user_cache_dir("PyLLM"), exist_ok=True)
@@ -211,7 +211,7 @@ class CodeLLM:
                     model_response = self.client.query(
                         formatted_prompt, sampling_params=sampling_params
                     )
-                    logging.debug("Model response: ", model_response)
+                    logging.debug(f"Model response: {model_response}")
                 except RequestException as e:
                     # retry if server fails to give 200 response
                     error_message = json.loads(e.args[0].decode())
@@ -227,7 +227,12 @@ class CodeLLM:
                     error_message = e.msg
                     logging.warning(f"Try #{cur_try}, function parsing failed: {e}")
                     continue
-
+                except NothingToParseError as e:
+                    logging.warning(f"Try #{cur_try}, {e}")
+                    logging.debug(
+                        f"No function found in the following model response:\n{model_response}"
+                    )
+                    continue
                 try:
                     if unit_tests:
                         self._unit_test(function, unit_tests)

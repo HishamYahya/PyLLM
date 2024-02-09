@@ -3,6 +3,7 @@ import re
 from typing import Callable
 
 from pyllm.parsers import ParserBase
+from pyllm.exceptions import NothingToParseError
 
 
 class RegExParser(ParserBase):
@@ -38,6 +39,7 @@ class RegExParser(ParserBase):
                 or execution of the code.
             NameError: If the execution of the code tries to access undefined variables or
                 functions.
+            NothingToParseError: If no code was able to be parsed from the input
         """
         # Escape all \ characters
         input_string = re.sub(r"\\", r"\\\\", input_string)
@@ -87,4 +89,4 @@ class RegExParser(ParserBase):
                 if name in function_names:
                     return value
 
-        return None
+        raise NothingToParseError("No function was able to be parsed.")
