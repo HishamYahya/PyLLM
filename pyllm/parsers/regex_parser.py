@@ -2,11 +2,11 @@ import ast
 import re
 from typing import Callable
 
-from pyllm.parsers import ParserBase
+from pyllm.parsers import Parser
 from pyllm.exceptions import NothingToParseError
 
 
-class RegExParser(ParserBase):
+class RegExParser(Parser):
     """
     A parser that extracts Python code blocks from an input string using regular expressions.
 

@@ -1,2 +1,2 @@
-from .parser import ParserBase
+from .base import Parser
 from .regex_parser import RegExParser

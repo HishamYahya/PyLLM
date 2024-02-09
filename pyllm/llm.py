@@ -10,7 +10,7 @@ from requests import RequestException
 from appdirs import user_cache_dir
 
 from pyllm.clients import Client, OpenAIChatClient
-from pyllm.parsers import ParserBase, RegExParser
+from pyllm.parsers import Parser, RegExParser
 from pyllm.templates import PromptTemplate
 from pyllm.types import SamplingParams, Function
 from pyllm.exceptions import TooManyRetries, NothingToParseError
@@ -101,7 +101,7 @@ class CodeLLM:
     def __init__(
         self,
         client: Optional[Client] = None,
-        parser: Optional[ParserBase] = None,
+        parser: Optional[Parser] = None,
         prompt_template: Optional[PromptTemplate] = None,
     ):
         """

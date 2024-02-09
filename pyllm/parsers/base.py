@@ -1,4 +1,4 @@
-class ParserBase:
+class Parser:
     def parse_function(self, input_string):
         raise NotImplementedError(
             "The function parsing functionality hasn't been implemented for",

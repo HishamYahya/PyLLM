@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, Union, List, Callable
 
-from pyllm.parsers import ParserBase
+from pyllm.parsers import Parser
 
 
 @dataclass
@@ -45,7 +45,7 @@ class Function:
     source: str
     model_name: str
     sampling_params: SamplingParams
-    parser: ParserBase
+    parser: Parser
 
     def __init__(
         self,
@@ -53,7 +53,7 @@ class Function:
         source: str,
         model_name: str,
         sampling_params: SamplingParams,
-        parser: ParserBase,
+        parser: Parser,
     ):
         """
         Args:
