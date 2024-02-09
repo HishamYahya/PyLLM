@@ -15,7 +15,7 @@ class Client:
 
     model_name: str
 
-    def query(self, input_string: str, samplin_params: SamplingParams) -> str:
+    def query(self, input_string: str, sampling_params: SamplingParams) -> str:
         """
         Abstract method for querying a model with a given input string and parameters.
 
