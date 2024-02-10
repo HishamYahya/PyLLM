@@ -137,14 +137,18 @@ class CodeLLM:
             AssertionError: If a unit test fails, indicating that the function
                 did not produce the expected output.
         """
+        failures = []
         for x, y in unit_tests:
             if type(x) is tuple:
                 yhat = function(*x)
             else:
                 yhat = function(x)
-
-            error_message = f"Unit test {x} -> {y} failed, got {yhat} instead."
-            assert yhat == y, error_message
+            if y != yhat:
+                error_message = f"{x} -> {yhat}, expected {y}."
+                failures.append(error_message)
+        assert (
+            not failures
+        ), f"{len(failures)}/{len(unit_tests)} tests failed:\n" + "\n".join(failures)
 
     def def_function(
         self,
@@ -238,7 +242,7 @@ class CodeLLM:
                         self._unit_test(function, unit_tests)
                 except AssertionError as e:
                     # retry if any unit test fails
-                    logging.warning(f"Try #{cur_try}, unit testing failed: {e}")
+                    logging.warning(f"Try #{cur_try}, unit testing failed:\n{e}")
                     continue
 
                 # Break when code passes all tests
