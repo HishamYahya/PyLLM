@@ -10,17 +10,20 @@ from requests import RequestException
 from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import Parser, RegExParser
 from pyllm.templates import PromptTemplate
-from pyllm.types import SamplingParams, Function
-from pyllm.exceptions import TooManyRetries, NothingToParseError
-from pyllm.utils import CacheHandler
+from pyllm.utils.exceptions import TooManyRetries, NothingToParseError
+from pyllm.interfaces import CodeGenerator
+from pyllm.utils.types import SamplingParams, Function
+from pyllm.utils.caching import CacheHandler
+from pyllm.utils.registry import METHOD_REGISTRY
 
 
-class CodeLLM:
+@METHOD_REGISTRY.register("baseline")
+class CodeLLM(CodeGenerator):
     """
     Facilitates the definition of functions using a language model, with
     capabilities to cache responses, parse model outputs, and validate through
     unit tests.
-    
+
     Attributes:
         client (Client): The client interface to query the language model.
         parser (ParserBase): The parser to convert model responses into
@@ -59,11 +62,11 @@ class CodeLLM:
     def _unit_test(self, function: Callable, unit_tests: List[Tuple]):
         """
         Executes unit tests on a given function to validate its correctness.
-        
+
         Args:
             function (Callable): The function to be tested.
             unit_tests (List[Tuple]): A list of tuples, where each tuple
-                contains input(s) and the expected output.        
+                contains input(s) and the expected output.
         Raises:
             AssertionError: If a unit test fails, indicating that the function
                 did not produce the expected output.
@@ -94,7 +97,7 @@ class CodeLLM:
         """
         Defines a function based on a given prompt, optionally using cached
         responses, and validates the function through unit testing.
-        
+
         Args:
             prompt (str): The prompt describing the function to be defined.
             input_types (Optional[List]): A list of input types for the function.
@@ -106,11 +109,11 @@ class CodeLLM:
                 parsing the response fails. Defaults to 1.
             sampling_params (SamplingParams): Parameters for sampling the model's
                 response. Defaults to an instance of SamplingParams with default values.
-        
+
         Returns:
             Function: A Function object encapsulating the defined function,
                 its source model response, and metadata.
-        
+
         Raises:
             TooManyRetries: If the number of retries exceeds `n_retries` without
                 successful definition and validation of the function.
@@ -139,7 +142,7 @@ class CodeLLM:
                 unit_tests=unit_tests,
             )
             for cur_try in range(n_retries):
-                seed = randint(0, 2 ** 62)
+                seed = randint(0, 2**62)
                 sampling_params.seed = seed
                 logging.debug(f"Try {cur_try}")
                 try:

@@ -10,14 +10,14 @@ os.makedirs(user_cache_dir("PyLLM"), exist_ok=True)
 class CacheHandler:
     """
     Manages access to a cache file with thread-safe read and write operations.
-    
+
     This class ensures that the cache file is created if it doesn't exist and
     handles the locking mechanism to avoid concurrent write conflicts.
-    
+
     Attributes:
         _CACHE_FILE (str): The path to the cache file used for storing function
             definitions and responses.
-    
+
     Args:
         mode (str): The mode in which to open the cache file ('r' for read,
             'w' for write, etc.). Defaults to 'r'.
@@ -31,14 +31,14 @@ class CacheHandler:
     def __enter__(self):
         """
         Manages access to a cache file with thread-safe read and write operations.
-        
+
         This class ensures that the cache file is created if it doesn't exist and
         handles the locking mechanism to avoid concurrent write conflicts.
-        
+
         Attributes:
             _CACHE_FILE (str): The path to the cache file used for storing function
                 definitions and responses.
-        
+
         Args:
             mode (str): The mode in which to open the cache file ('r' for read,
                 'w' for write, etc.). Defaults to 'r'.

@@ -6,9 +6,11 @@ from typing import Dict, Optional
 from dataclasses import asdict
 
 from pyllm.clients import Client
-from pyllm.types import SamplingParams
+from pyllm.utils.types import SamplingParams
+from pyllm.utils.registry import CLIENT_REGISTRY
 
 
+@CLIENT_REGISTRY.register("openai")
 class OpenAIChatClient(Client):
     """
     A client for querying an OpenAI API endpoint, specifically designed for chat completions.
