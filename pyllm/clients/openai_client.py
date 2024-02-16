@@ -2,7 +2,7 @@ import os
 import requests
 import json
 
-from typing import Optional
+from typing import Dict, Optional
 from dataclasses import asdict
 
 from pyllm.clients import Client
@@ -58,7 +58,12 @@ class OpenAIChatClient(Client):
         self.org_id = org_id
         self.base_url = base_url if base_url[-1] == "/" else base_url + "/"
 
-    def query(self, prompt, sampling_params: SamplingParams = SamplingParams()) -> str:
+    def query(
+        self,
+        prompt: Optional[str] = None,
+        messages: Optional[Dict] = None,
+        sampling_params: SamplingParams = SamplingParams(),
+    ) -> str:
         """
         Queries the OpenAI API endpoint with a given prompt and sampling parameters.
 
@@ -74,12 +79,14 @@ class OpenAIChatClient(Client):
             requests.RequestException: If the request to the OpenAI API fails or returns a
                 non-200 status code, with the response content included in the exception message.
         """
+        if (not prompt and not messages) or (prompt and messages):
+            raise ValueError("Pass either a string prompt or messages dict")
+
         headers = {"Authorization": f"Bearer {self.api_key}"}
-        if self.org_id:
-            headers[""]
+
         body = {
             "model": self.model_name,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages if messages else [{"role": "user", "content": prompt}],
             **asdict(sampling_params),
         }
 
