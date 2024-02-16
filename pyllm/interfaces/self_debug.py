@@ -12,10 +12,11 @@ from enum import Enum
 from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import Parser, RegExParser
 from pyllm.templates import PromptTemplate
-from pyllm.types import SamplingParams, Function
-from pyllm.exceptions import TooManyRetries, NothingToParseError
-from pyllm.utils import CacheHandler
-
+from pyllm.utils.exceptions import TooManyRetries, NothingToParseError
+from pyllm.interfaces import CodeGenerator
+from pyllm.utils.types import SamplingParams, Function
+from pyllm.utils.caching import CacheHandler
+from pyllm.utils.registry import METHOD_REGISTRY
 
 SELF_DEBUG_TEMPLATE = """Define a function for completing the following task in Python:
 {{prompt}}
@@ -49,9 +50,10 @@ class UnitTestResult:
         return self.y != self.yhat or self.error
 
 
-class SelfDebugLLM:
+class SelfDebugLLM(CodeGenerator):
     def __init__(
         self,
+        feedback_mode: FeedbackMode,
         client: Optional[Client] = None,
         parser: Optional[Parser] = None,
         prompt_template: Optional[PromptTemplate] = None,
@@ -68,16 +70,18 @@ class SelfDebugLLM:
             prompt_template = PromptTemplate(SELF_DEBUG_TEMPLATE)
         self.prompt_template = prompt_template
 
+        self.feedback_mode: FeedbackMode = feedback_mode
+
     def _unit_test(
         self, function: Callable, unit_tests: List[Tuple]
     ) -> List[UnitTestResult]:
         """
         Executes unit tests on a given function to validate its correctness.
-        
+
         Args:
             function (Callable): The function to be tested.
             unit_tests (List[Tuple]): A list of tuples, where each tuple
-                contains input(s) and the expected output.        
+                contains input(s) and the expected output.
         Returns:
             results (List[UnitTestResult])
         """
@@ -126,7 +130,6 @@ class SelfDebugLLM:
         prompt: str,
         unit_tests: List[Tuple],
         max_turns: int = 2,
-        feedback_mode: FeedbackMode = FeedbackMode.SIMPLE,
         use_cached: bool = True,
         n_retries: int = 1,
         sampling_params: SamplingParams = SamplingParams(),
@@ -140,7 +143,7 @@ class SelfDebugLLM:
         ]
 
         for cur_try in range(n_retries):
-            seed = randint(0, 2 ** 62)
+            seed = randint(0, 2**62)
             sampling_params.seed = seed
             logging.debug(f"Try {cur_try}")
 
@@ -165,10 +168,7 @@ class SelfDebugLLM:
                         messages.append(
                             {"role": "assistant", "content": model_response}
                         )
-                    for message in messages:
-                        print(message["role"])
-                        print(message["content"])
-                        print()
+
                     logging.debug(f"Model response: {model_response}")
                 except RequestException as e:
                     # retry if server fails to give 200 response
@@ -237,7 +237,7 @@ class SelfDebugLLM:
                     )
                     continue
 
-                if feedback_mode == FeedbackMode.SIMPLE:
+                if self.feedback_mode == FeedbackMode.SIMPLE:
                     messages.append(
                         {
                             "role": "user",
@@ -245,11 +245,11 @@ class SelfDebugLLM:
                         }
                     )
 
-                elif feedback_mode == FeedbackMode.UT:
+                elif self.feedback_mode == FeedbackMode.UT:
                     feedback = self._get_unit_test_feedback(failures)
                     messages.append({"role": "user", "content": feedback})
 
-                elif feedback_mode == FeedbackMode.UT_EXPL:
+                elif self.feedback_mode == FeedbackMode.UT_EXPL:
                     messages.append(
                         {
                             "role": "user",
@@ -272,7 +272,7 @@ class SelfDebugLLM:
                         {"role": "user", "content": feedback},
                     ]
 
-                elif feedback_mode == FeedbackMode.UT_TRACE:
+                elif self.feedback_mode == FeedbackMode.UT_TRACE:
                     feedback = self._get_unit_test_feedback(failures, with_trace=True)
 
                     messages.append({"role": "user", "content": feedback})
@@ -290,3 +290,47 @@ class SelfDebugLLM:
                         {"role": "assistant", "content": trace},
                         {"role": "user", "content": "Please fix the Python code."},
                     ]
+
+
+@METHOD_REGISTRY.register("self-debug-simple")
+class SelfDebugLLMSimple(SelfDebugLLM):
+    def __init__(
+        self,
+        client: Client | None = None,
+        parser: Parser | None = None,
+        prompt_template: PromptTemplate | None = None,
+    ):
+        super().__init__(FeedbackMode.SIMPLE, client, parser, prompt_template)
+
+
+@METHOD_REGISTRY.register("self-debug-ut")
+class SelfDebugLLMUT(SelfDebugLLM):
+    def __init__(
+        self,
+        client: Client | None = None,
+        parser: Parser | None = None,
+        prompt_template: PromptTemplate | None = None,
+    ):
+        super().__init__(FeedbackMode.UT, client, parser, prompt_template)
+
+
+@METHOD_REGISTRY.register("self-debug-ut-expl")
+class SelfDebugLLMUTExpl(SelfDebugLLM):
+    def __init__(
+        self,
+        client: Client | None = None,
+        parser: Parser | None = None,
+        prompt_template: PromptTemplate | None = None,
+    ):
+        super().__init__(FeedbackMode.UT_EXPL, client, parser, prompt_template)
+
+
+@METHOD_REGISTRY.register("self-debug-ut-trace")
+class SelfDebugLLMUTExpl(SelfDebugLLM):
+    def __init__(
+        self,
+        client: Client | None = None,
+        parser: Parser | None = None,
+        prompt_template: PromptTemplate | None = None,
+    ):
+        super().__init__(FeedbackMode.UT_TRACE, client, parser, prompt_template)
