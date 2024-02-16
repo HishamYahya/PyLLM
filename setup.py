@@ -27,7 +27,7 @@ setup(
     download_url=f"https://github.com/HishamYahya/PyLLM/archive/refs/tags/v{version}.tar.gz",
     packages=find_packages(),
     url="https://github.com/HishamYahya/PyLLM",
-    install_requires=["filelock", "Jinja2", "Requests", "appdirs", "pytest"],
+    install_requires=["filelock", "Jinja2", "Requests", "appdirs", "pytest", "datasets", "tabulate"],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
