@@ -1,9 +1,9 @@
 from typing import Callable
 
 from pyllm.clients import Client
-from pyllm.types import SamplingParams
+from pyllm.utils.types import SamplingParams
 from pyllm.interfaces import CodeLLM
-from pyllm.types import Function
+from pyllm.utils.types import Function
 
 
 class MockClient(Client):
