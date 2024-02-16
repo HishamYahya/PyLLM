@@ -2,7 +2,7 @@ from typing import Callable
 
 from pyllm.clients import Client
 from pyllm.types import SamplingParams
-from pyllm.llm import CodeLLM
+from pyllm.interfaces import CodeLLM
 from pyllm.types import Function
 
 

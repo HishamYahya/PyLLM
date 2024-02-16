@@ -1,1 +1,1 @@
-from .llm import CodeLLM
+from .interfaces import CodeLLM

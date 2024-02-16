@@ -26,13 +26,13 @@ class PromptTemplate:
                 generating prompts. Defaults to DEFAULT_FUNCTION_JINJA_TEMPLATE.
         """
         environment = jinja2.Environment()
-        self.jinja_template = environment.from_string(DEFAULT_FUNCTION_JINJA_TEMPLATE)
+        self.jinja_template = environment.from_string(jinja_template_string)
 
     def apply(
         self,
         prompt: str,
         # For now, only function generation is supported
-        object_type: Literal["function"],
+        object_type: Literal["function"] = "Function",
         input_types: Optional[List] = None,
         output_types: Optional[List] = None,
         unit_tests: Optional[List[Tuple]] = None,
