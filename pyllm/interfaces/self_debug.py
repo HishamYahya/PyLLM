@@ -296,9 +296,9 @@ class SelfDebugLLM(CodeGenerator):
 class SelfDebugLLMSimple(SelfDebugLLM):
     def __init__(
         self,
-        client: Client | None = None,
-        parser: Parser | None = None,
-        prompt_template: PromptTemplate | None = None,
+        client: Optional[Client] = None,
+        parser: Optional[Parser] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         super().__init__(FeedbackMode.SIMPLE, client, parser, prompt_template)
 
@@ -307,9 +307,9 @@ class SelfDebugLLMSimple(SelfDebugLLM):
 class SelfDebugLLMUT(SelfDebugLLM):
     def __init__(
         self,
-        client: Client | None = None,
-        parser: Parser | None = None,
-        prompt_template: PromptTemplate | None = None,
+        client: Optional[Client] = None,
+        parser: Optional[Parser] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         super().__init__(FeedbackMode.UT, client, parser, prompt_template)
 
@@ -318,9 +318,9 @@ class SelfDebugLLMUT(SelfDebugLLM):
 class SelfDebugLLMUTExpl(SelfDebugLLM):
     def __init__(
         self,
-        client: Client | None = None,
-        parser: Parser | None = None,
-        prompt_template: PromptTemplate | None = None,
+        client: Optional[Client] = None,
+        parser: Optional[Parser] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         super().__init__(FeedbackMode.UT_EXPL, client, parser, prompt_template)
 
@@ -329,8 +329,8 @@ class SelfDebugLLMUTExpl(SelfDebugLLM):
 class SelfDebugLLMUTExpl(SelfDebugLLM):
     def __init__(
         self,
-        client: Client | None = None,
-        parser: Parser | None = None,
-        prompt_template: PromptTemplate | None = None,
+        client: Optional[Client] = None,
+        parser: Optional[Parser] = None,
+        prompt_template: Optional[PromptTemplate] = None,
     ):
         super().__init__(FeedbackMode.UT_TRACE, client, parser, prompt_template)
