@@ -22,7 +22,7 @@ class BaseMBPP(FunctionDataset):
         return map(self._to_evaluation_row, super().__iter__())
 
     def get_unit_tests(self, row) -> List[Tuple]:
-        pattern = r"^assert .+\((.+)\)\s?==\s?(.+)$"
+        pattern = r"^assert \w+\((.+)\)\s?==\s?(.+)$"
         unit_tests = []
         for test in row["test_list"]:
             match = re.search(pattern, test)
