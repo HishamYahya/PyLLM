@@ -34,8 +34,8 @@ def evaluate(
         for dataset_name, dataset in datasets.items():
             # logging.info(f"Evaluating dataset: {dataset_name}")
             correct, total = 0, 0
-
-            for row in tqdm(dataset, desc=f"{dataset_name} - {method_name}"):
+            pbar = tqdm(dataset, desc=f"{dataset_name} - {method_name}")
+            for row in pbar:
                 try:
                     method.def_function(
                         row.prompt, unit_tests=row.unit_tests, use_cached=False
@@ -47,7 +47,8 @@ def evaluate(
                     )
                 finally:
                     total += 1
-                break
+                    pbar.set_postfix({"Accuracy": correct/total})
+
 
             results[method_name][dataset_name] = correct / total
             # logging.info(f"Method {method_name} Accuracy: {correct / total:.2%}")
