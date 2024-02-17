@@ -7,7 +7,7 @@ from tabulate import tabulate
 
 from pyllm.utils.registry import CLIENT_REGISTRY, METHOD_REGISTRY, DATASET_REGISTRY
 from pyllm.interfaces import CodeGenerator
-from pyllm.datasets.base import FunctionDataset
+from pyllm.function_datasets.base import FunctionDataset
 from tqdm import tqdm
 
 logging.basicConfig(
@@ -37,7 +37,9 @@ def evaluate(
 
             for row in tqdm(dataset, desc=f"{dataset_name} - {method_name}"):
                 try:
-                    method.def_function(row.prompt, unit_tests=row.unit_tests, use_cached=False)
+                    method.def_function(
+                        row.prompt, unit_tests=row.unit_tests, use_cached=False
+                    )
                     correct += 1
                 except Exception as e:
                     logging.error(
@@ -69,22 +71,25 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.methods == 'all':
+    if args.methods == "all":
         methods = list(METHOD_REGISTRY._classes_dict.keys())
     else:
         methods = args.methods.split(",")
-    
-    if args.datasets == 'all':
+
+    if args.datasets == "all":
         datasets = list(DATASET_REGISTRY._classes_dict.keys())
     else:
         datasets = args.datasets.split(",")
-
     client_name = args.client
 
     client_args = args.client_args.split(",")
     client_args = {
         arg.split("=")[0]: "=".join(arg.split("=")[1:]) for arg in client_args
     }
+
+    print(f"Evaluating methods: {methods}")
+    print(f"Evaluating datasets: {datasets}")
+
     evaluate(
         methods=methods,
         datasets=datasets,

@@ -3,7 +3,7 @@ import re
 from typing import List, Tuple, Iterator
 from datasets import Dataset, load_dataset
 from pyllm.utils.registry import DATASET_REGISTRY
-from pyllm.datasets.base import EvaluationRow, FunctionDataset
+from pyllm.function_datasets.base import EvaluationRow, FunctionDataset
 
 
 class BaseMBPP(FunctionDataset):
