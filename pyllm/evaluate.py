@@ -69,9 +69,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    methods = args.methods.split(",")
-
-    datasets = args.datasets.split(",")
+    if args.methods == 'all':
+        methods = list(METHOD_REGISTRY._classes_dict.keys())
+    else:
+        methods = args.methods.split(",")
+    
+    if args.datasets == 'all':
+        datasets = list(DATASET_REGISTRY._classes_dict.keys())
+    else:
+        datasets = args.datasets.split(",")
 
     client_name = args.client
 
