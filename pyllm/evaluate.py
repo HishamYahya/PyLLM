@@ -37,7 +37,7 @@ def evaluate(
 
             for row in tqdm(dataset, desc=f"{dataset_name} - {method_name}"):
                 try:
-                    method.def_function(row.prompt, unit_tests=row.unit_tests)
+                    method.def_function(row.prompt, unit_tests=row.unit_tests, use_cached=False)
                     correct += 1
                 except Exception as e:
                     logging.error(
