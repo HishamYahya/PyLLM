@@ -1,4 +1,5 @@
 import re
+import logging
 
 from typing import List, Tuple, Iterator
 from datasets import Dataset, load_dataset
@@ -14,25 +15,37 @@ class BaseMBPP(FunctionDataset):
         row = super().__getitem__(key)
         return self._to_evaluation_row(row)
 
-    def _to_evaluation_row(self, row: dict) -> EvaluationRow:
-        unit_tests = self.get_unit_tests(row)
-        return EvaluationRow(row["text"], unit_tests)
+    def _to_evaluation_row(self, row: dict, prompt_key: str = "text") -> EvaluationRow:
+        try:
+            unit_tests = self.get_unit_tests(row)
+        except Exception as e:
+            logging.warning(
+                f"Skipping task {row['task_id']}. Got the following error when trying to parse its unit tests: {e}"
+            )
+            return None
+        return EvaluationRow(row[prompt_key], unit_tests)
 
     def __iter__(self) -> Iterator[EvaluationRow]:
-        return map(self._to_evaluation_row, super().__iter__())
+        return filter(
+            lambda x: x is not None, map(self._to_evaluation_row, super().__iter__())
+        )
 
     def get_unit_tests(self, row) -> List[Tuple]:
-        pattern = r"^assert \w+\((.+)\)\s?==\s?(.+)$"
         unit_tests = []
         for test in row["test_list"]:
-            match = re.search(pattern, test)
+            # Capture the case where the output of the function is first turned into a set in the assertion
+            if test.startswith("assert set("):
+                match = re.search(r"^assert (?:set\()?\w+\((.+)\)\)\s?==\s?(.+)$", test)
+            else:
+                match = re.search(r"^assert \w+\((.+)\)\s?==\s?(.+)$", test)
+
             if match:
                 inp, out = match.groups()
                 inp, out = eval(inp), eval(out)
                 unit_tests.append((inp, out))
             else:
                 pass
-                # print(test)
+
         return unit_tests
 
 
@@ -52,6 +65,5 @@ class MBPPSanitized(BaseMBPP):
         super().__init__(self._dataset)
 
     def _to_evaluation_row(self, row: dict) -> EvaluationRow:
-        unit_tests = self.get_unit_tests(row)
         # sanitized version renames "text" to "prompt"
-        return EvaluationRow(row["prompt"], unit_tests)
+        return super()._to_evaluation_row(row, "prompt")

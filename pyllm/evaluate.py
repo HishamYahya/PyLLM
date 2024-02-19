@@ -47,8 +47,7 @@ def evaluate(
                     )
                 finally:
                     total += 1
-                    pbar.set_postfix({"Accuracy": correct/total})
-
+                    pbar.set_postfix({"Accuracy": correct / total})
 
             results[method_name][dataset_name] = correct / total
             # logging.info(f"Method {method_name} Accuracy: {correct / total:.2%}")

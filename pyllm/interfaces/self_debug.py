@@ -143,7 +143,7 @@ class SelfDebugLLM(CodeGenerator):
         ]
 
         for cur_try in range(n_retries):
-            seed = randint(0, 2**62)
+            seed = randint(0, 2 ** 62)
             sampling_params.seed = seed
             logging.debug(f"Try {cur_try}")
 
