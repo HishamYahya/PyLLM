@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import timeout_decorator
 
 from dataclasses import asdict
 from typing import Optional, List, Tuple, Callable
@@ -72,6 +73,9 @@ class CodeLLM(CodeGenerator):
                 did not produce the expected output.
         """
         failures = []
+
+        function = timeout_decorator.timeout(5, use_signals=False)(function)
+
         for x, y in unit_tests:
             if type(x) is tuple:
                 yhat = function(*x)

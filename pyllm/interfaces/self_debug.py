@@ -1,13 +1,13 @@
 import json
 import os
 import logging
+import timeout_decorator
 
 from dataclasses import asdict, dataclass
 from typing import Optional, List, Tuple, Callable
 from random import randint
 from requests import RequestException
 from enum import Enum
-
 
 from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import Parser, RegExParser
@@ -86,6 +86,9 @@ class SelfDebugLLM(CodeGenerator):
             results (List[UnitTestResult])
         """
         results = []
+
+        function = timeout_decorator.timeout(5, use_signals=False)(function)
+
         for i, (x, y) in enumerate(unit_tests):
             try:
                 if type(x) is tuple:
@@ -150,6 +153,7 @@ class SelfDebugLLM(CodeGenerator):
             success_feedback = False
             success_turn_function = None
             for turn in range(max_turns):
+                logging.debug(f"Turn {turn}")
                 try:
                     if success_feedback:
                         success_turn_model_response = self.client.query(
@@ -290,6 +294,7 @@ class SelfDebugLLM(CodeGenerator):
                         {"role": "assistant", "content": trace},
                         {"role": "user", "content": "Please fix the Python code."},
                     ]
+        raise TooManyRetries(f"{n_retries=} exceeded.")
 
 
 @METHOD_REGISTRY.register("self-debug-simple")

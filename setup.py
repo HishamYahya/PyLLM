@@ -35,6 +35,7 @@ setup(
         "pytest",
         "datasets",
         "tabulate",
+        "timeout-decorator",
     ],
     classifiers=[
         "Development Status :: 3 - Alpha",
