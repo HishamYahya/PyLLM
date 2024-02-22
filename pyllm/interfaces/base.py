@@ -3,6 +3,7 @@ import timeout_decorator
 from typing import List, Tuple, Callable
 from dataclasses import dataclass
 from pyllm.utils.types import Function
+from pyllm.utils.io_utils import swallow_io
 
 
 @dataclass
@@ -29,6 +30,7 @@ class CodeGenerator:
         unit_tests: List[Tuple],
         timeout_s: int = 5,
         use_signals: bool = True,
+        quiet: bool = True
     ) -> List[UnitTestResult]:
         """
         Executes unit tests on a given function to validate its correctness.
@@ -45,6 +47,9 @@ class CodeGenerator:
         function = timeout_decorator.timeout(timeout_s, use_signals=use_signals)(
             function
         )
+
+        if quiet:
+            function = swallow_io()(function)
 
         for i, (x, y) in enumerate(unit_tests):
             try:
