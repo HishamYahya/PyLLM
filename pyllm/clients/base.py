@@ -1,4 +1,4 @@
-from pyllm.types import SamplingParams
+from pyllm.utils.types import SamplingParams
 
 
 class Client:

@@ -3,7 +3,7 @@ import re
 from typing import Callable
 
 from pyllm.parsers import Parser
-from pyllm.exceptions import NothingToParseError
+from pyllm.utils.exceptions import NothingToParseError
 
 
 class RegExParser(Parser):

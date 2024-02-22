@@ -1,95 +1,30 @@
 import json
 import os
 import logging
+import timeout_decorator
 
 from dataclasses import asdict
 from typing import Optional, List, Tuple, Callable
 from random import randint
-from filelock import FileLock
 from requests import RequestException
-from appdirs import user_cache_dir
 
 from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import Parser, RegExParser
 from pyllm.templates import PromptTemplate
-from pyllm.types import SamplingParams, Function
-from pyllm.exceptions import TooManyRetries, NothingToParseError
+from pyllm.utils.exceptions import TooManyRetries, NothingToParseError
+from pyllm.interfaces import CodeGenerator
+from pyllm.utils.types import SamplingParams, Function
+from pyllm.utils.caching import CacheHandler
+from pyllm.utils.registry import METHOD_REGISTRY
 
 
-os.makedirs(user_cache_dir("PyLLM"), exist_ok=True)
-
-
-class CacheHandler:
-    """
-    Manages access to a cache file with thread-safe read and write operations.
-    
-    This class ensures that the cache file is created if it doesn't exist and
-    handles the locking mechanism to avoid concurrent write conflicts.
-    
-    Attributes:
-        _CACHE_FILE (str): The path to the cache file used for storing function
-            definitions and responses.
-    
-    Args:
-        mode (str): The mode in which to open the cache file ('r' for read,
-            'w' for write, etc.). Defaults to 'r'.
-    """
-
-    _CACHE_FILE = os.path.join(user_cache_dir("PyLLM"), "cached_functions.json")
-
-    def __init__(self, mode: str = "r"):
-        self.mode = mode
-
-    def __enter__(self):
-        """
-        Manages access to a cache file with thread-safe read and write operations.
-        
-        This class ensures that the cache file is created if it doesn't exist and
-        handles the locking mechanism to avoid concurrent write conflicts.
-        
-        Attributes:
-            _CACHE_FILE (str): The path to the cache file used for storing function
-                definitions and responses.
-        
-        Args:
-            mode (str): The mode in which to open the cache file ('r' for read,
-                'w' for write, etc.). Defaults to 'r'.
-        """
-        self.lock = FileLock(f"{self._CACHE_FILE}.lock")
-        self.lock.acquire()
-        try:
-            if not os.path.exists(self._CACHE_FILE):
-                with open(self._CACHE_FILE, "w") as f:
-                    json.dump({}, f)
-            else:
-                try:
-                    with open(self._CACHE_FILE, "r") as f:
-                        json.load(f)
-                # If the file is corrupted, empty it
-                except json.JSONDecodeError:
-                    with open(self._CACHE_FILE, "w") as f:
-                        json.dump({}, f)
-        finally:
-            self.lock.release()
-
-        self.file = open(self._CACHE_FILE, self.mode)
-        return self.file
-
-    def __exit__(self, *_):
-        """
-        Closes the cache file and releases the file lock on exiting the
-        context manager.
-        """
-        self.file.close()
-        self.lock.release()
-
-
-class CodeLLM:
+@METHOD_REGISTRY.register("baseline")
+class CodeLLM(CodeGenerator):
     """
     Facilitates the definition of functions using a language model, with
     capabilities to cache responses, parse model outputs, and validate through
     unit tests.
-    
+
     Attributes:
         client (Client): The client interface to query the language model.
         parser (ParserBase): The parser to convert model responses into
@@ -128,16 +63,19 @@ class CodeLLM:
     def _unit_test(self, function: Callable, unit_tests: List[Tuple]):
         """
         Executes unit tests on a given function to validate its correctness.
-        
+
         Args:
             function (Callable): The function to be tested.
             unit_tests (List[Tuple]): A list of tuples, where each tuple
-                contains input(s) and the expected output.        
+                contains input(s) and the expected output.
         Raises:
             AssertionError: If a unit test fails, indicating that the function
                 did not produce the expected output.
         """
         failures = []
+
+        function = timeout_decorator.timeout(5, use_signals=False)(function)
+
         for x, y in unit_tests:
             if type(x) is tuple:
                 yhat = function(*x)
@@ -163,7 +101,7 @@ class CodeLLM:
         """
         Defines a function based on a given prompt, optionally using cached
         responses, and validates the function through unit testing.
-        
+
         Args:
             prompt (str): The prompt describing the function to be defined.
             input_types (Optional[List]): A list of input types for the function.
@@ -175,11 +113,11 @@ class CodeLLM:
                 parsing the response fails. Defaults to 1.
             sampling_params (SamplingParams): Parameters for sampling the model's
                 response. Defaults to an instance of SamplingParams with default values.
-        
+
         Returns:
             Function: A Function object encapsulating the defined function,
                 its source model response, and metadata.
-        
+
         Raises:
             TooManyRetries: If the number of retries exceeds `n_retries` without
                 successful definition and validation of the function.
@@ -208,7 +146,7 @@ class CodeLLM:
                 unit_tests=unit_tests,
             )
             for cur_try in range(n_retries):
-                seed = randint(0, 2 ** 62)
+                seed = randint(0, 2**62)
                 sampling_params.seed = seed
                 logging.debug(f"Try {cur_try}")
                 try:
@@ -237,13 +175,28 @@ class CodeLLM:
                         f"No function found in the following model response:\n{model_response}"
                     )
                     continue
-                try:
-                    if unit_tests:
-                        self._unit_test(function, unit_tests)
-                except AssertionError as e:
-                    # retry if any unit test fails
-                    logging.warning(f"Try #{cur_try}, unit testing failed:\n{e}")
-                    continue
+
+                if unit_tests:
+                    unit_test_results = self.unit_test(function, unit_tests)
+                    print(model_response)
+                    print(unit_test_results)
+                    if failures := [
+                        result for result in unit_test_results if result.failed
+                    ]:
+                        error_message = (
+                            f"{len(failures)}/{len(unit_test_results)} test failed."
+                        )
+                        for result in failures:
+                            if result.error:
+                                error_message += f"\n{result.x} -> {result.y}, got error {result.error}"
+                            else:
+                                error_message += f"\n{result.x} -> {result.y}, got {result.yhat} instead."
+
+                        # retry if any unit test fails
+                        logging.warning(
+                            f"Try #{cur_try}, unit testing failed.\n{error_message}"
+                        )
+                        continue
 
                 # Break when code passes all tests
                 break

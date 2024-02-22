@@ -10,44 +10,25 @@ from pyllm.utils.types import SamplingParams
 from pyllm.utils.registry import CLIENT_REGISTRY
 
 
-@CLIENT_REGISTRY.register("openai")
-class OpenAIChatClient(Client):
+@CLIENT_REGISTRY.register("azure")
+class AzureChatClient(Client):
     """
-    A client for querying an OpenAI API endpoint, specifically designed for chat completions.
+    A client for querying an OpenAI API endpoint hosted on Azure, specifically designed for chat completions.
 
     This client handles the setup and execution of requests to an OpenAI API, allowing for
     easy querying of the model for chat-based completions.
 
-    Attributes:
-        api_key (str): The API key used for authentication with the server.
-        model_name (str): The name of the model to query. Defaults to 'gpt-3.5-turbo'.
-        org_id (Optional[str]): The organization ID for OpenAI, if applicable.
-        base_url (str): The base URL for the OpenAI chat completions API endpoint.
+    https://learn.microsoft.com/en-us/azure/ai-services/openai/reference
     """
 
     def __init__(
         self,
-        model_name: str = "gpt-3.5-turbo",
-        base_url: str = "https://api.openai.com",
+        url: Optional[str] = None,
+        resource_name: Optional[str] = None,
+        deployment_id: Optional[str] = None,
+        api_version: Optional[str] = None,
         api_key: Optional[str] = None,
-        org_id: Optional[str] = None,
     ):
-        """
-        Initializes the OpenAIChatClient with API key, model name, organization ID, and base URL.
-
-        The API key can be provided directly or set as an environment variable.
-
-        Args:
-            model_name (str): The name of the model to be queried. Defaults to 'gpt-3.5-turbo'.
-            base_url (str): The base URL for the chat completions API endpoint. Defaults to
-                the standard OpenAI chat completions endpoint.
-            api_key (Optional[str]): Optional API key for authentication. If not provided,
-                attempts to retrieve it from the environment variable OPENAI_API_KEY.
-            org_id (Optional[str]): Optional organization ID for usage with OpenAI's API.
-
-        Raises:
-            KeyError: If no API key is provided directly or found in the environment variables.
-        """
         if api_key is not None:
             self.api_key = api_key
         elif "OPENAI_API_KEY" in os.environ:
@@ -56,9 +37,21 @@ class OpenAIChatClient(Client):
             raise KeyError(
                 "No OpenAI API key provided. Make sure to either pass it to the constructor or save it as an environment variable with the name OPENAI_API_KEY"
             )
-        self.model_name = model_name
-        self.org_id = org_id
-        self.base_url = base_url if base_url[-1] == "/" else base_url + "/"
+
+        if url:
+            self.url = url
+        else:
+            if (
+                sum([bool(arg) for arg in [resource_name, deployment_id, api_version]])
+                < 3
+            ):
+                raise ValueError(
+                    "You must pass all of resource_name, deployment_id, and api_version when no URL is provided"
+                )
+
+            self.url = f"https://{resource_name}.openai.azure.com/openai/deployments/{deployment_id}/chat/completions?api-version={api_version}"
+
+        self.model_name = self.url
 
     def query(
         self,
@@ -84,16 +77,14 @@ class OpenAIChatClient(Client):
         if (not prompt and not messages) or (prompt and messages):
             raise ValueError("Pass either a string prompt or messages dict")
 
-        headers = {"Authorization": f"Bearer {self.api_key}"}
+        headers = {"api-key": f"{self.api_key}"}
 
         body = {
-            "model": self.model_name,
             "messages": messages if messages else [{"role": "user", "content": prompt}],
             **asdict(sampling_params),
         }
 
-        completions_url = self.base_url + "v1/chat/completions"
-        res = requests.post(completions_url, json=body, headers=headers)
+        res = requests.post(self.url, json=body, headers=headers)
 
         if res.status_code != 200:
             raise requests.RequestException(res.content)

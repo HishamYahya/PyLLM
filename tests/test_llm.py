@@ -1,9 +1,12 @@
 from typing import Callable
+import pytest
+import logging
 
 from pyllm.clients import Client
-from pyllm.types import SamplingParams
-from pyllm.llm import CodeLLM
-from pyllm.types import Function
+from pyllm.utils.types import SamplingParams
+from pyllm.interfaces import CodeLLM
+from pyllm.utils.types import Function
+from pyllm.utils.exceptions import TooManyRetries
 
 
 class MockClient(Client):
@@ -47,3 +50,18 @@ def test_function_generation_with_import():
     output = function(1)
 
     assert output["test"] == 1
+
+
+def test_failed_unit_tests(caplog):
+    # A function that swaps two numbers
+    response = 'The following is the definition of a function that swaps two numbers:<START-OF-CODE>\ndef swap_numbers(a, b):\n    """\n    Swaps the values of two numbers.\n    \n    Args:\n    a (int): The first number.\n    b (int): The second number.\n    \n    Returns:\n    tuple: A tuple containing the swapped values of the two numbers.\n    """\n    return b, a\n<END-OF-CODE>'
+
+    llm = CodeLLM(client=MockClient(response))
+    with caplog.at_level(logging.WARNING):
+        with pytest.raises(TooManyRetries):
+            llm.def_function("", unit_tests=[((1, 4), (10, 40))], use_cached=False)
+
+    assert "1" in caplog.text, "x1 not in error"
+    assert "4" in caplog.text, "y1 not in error"
+    assert "10" in caplog.text, "x2 not in error"
+    assert "40" in caplog.text, "y2 not in error"
