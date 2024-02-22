@@ -13,7 +13,7 @@ from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import Parser, RegExParser
 from pyllm.templates import PromptTemplate
 from pyllm.utils.exceptions import TooManyRetries, NothingToParseError
-from pyllm.interfaces import CodeGenerator
+from pyllm.interfaces import CodeGenerator, UnitTestResult
 from pyllm.utils.types import SamplingParams, Function
 from pyllm.utils.caching import CacheHandler
 from pyllm.utils.registry import METHOD_REGISTRY
@@ -37,23 +37,10 @@ class FeedbackMode(str, Enum):
     UT_TRACE = "ut+trace"
 
 
-@dataclass
-class UnitTestResult:
-    id: int
-    x: int
-    y: any
-    yhat: any
-    error: any
-
-    @property
-    def failed(self) -> bool:
-        return self.y != self.yhat or self.error
-
-
 class SelfDebugLLM(CodeGenerator):
     def __init__(
         self,
-        feedback_mode: FeedbackMode,
+        feedback_mode: FeedbackMode = FeedbackMode.SIMPLE,
         client: Optional[Client] = None,
         parser: Optional[Parser] = None,
         prompt_template: Optional[PromptTemplate] = None,
@@ -71,43 +58,6 @@ class SelfDebugLLM(CodeGenerator):
         self.prompt_template = prompt_template
 
         self.feedback_mode: FeedbackMode = feedback_mode
-
-    def _unit_test(
-        self, function: Callable, unit_tests: List[Tuple]
-    ) -> List[UnitTestResult]:
-        """
-        Executes unit tests on a given function to validate its correctness.
-
-        Args:
-            function (Callable): The function to be tested.
-            unit_tests (List[Tuple]): A list of tuples, where each tuple
-                contains input(s) and the expected output.
-        Returns:
-            results (List[UnitTestResult])
-        """
-        results = []
-
-        function = timeout_decorator.timeout(5, use_signals=False)(function)
-
-        for i, (x, y) in enumerate(unit_tests):
-            try:
-                if type(x) is tuple:
-                    yhat = function(*x)
-                else:
-                    yhat = function(x)
-                results.append(
-                    UnitTestResult(
-                        **{"id": i, "error": None, "x": x, "y": y, "yhat": yhat}
-                    )
-                )
-            except Exception as e:
-                results.append(
-                    UnitTestResult(
-                        **{"id": i, "error": e, "x": x, "y": y, "yhat": None}
-                    )
-                )
-
-        return results
 
     def _get_unit_test_feedback(
         self, failures: List[UnitTestResult], with_trace: bool = False
@@ -146,7 +96,7 @@ class SelfDebugLLM(CodeGenerator):
         ]
 
         for cur_try in range(n_retries):
-            seed = randint(0, 2 ** 62)
+            seed = randint(0, 2**62)
             sampling_params.seed = seed
             logging.debug(f"Try {cur_try}")
 
@@ -206,7 +156,7 @@ class SelfDebugLLM(CodeGenerator):
 
                 # If one of the unit tests fails, return the function generated at the previous turn (already validated)
                 if success_feedback and success_turn_function:
-                    unit_test_results = self._unit_test(
+                    unit_test_results = self.unit_test(
                         success_turn_function, unit_tests=unit_tests
                     )
                     for test in unit_test_results:
@@ -227,7 +177,7 @@ class SelfDebugLLM(CodeGenerator):
                         parser=self.parser,
                     )
 
-                unit_test_results = self._unit_test(function, unit_tests)
+                unit_test_results = self.unit_test(function, unit_tests)
                 failures = [test for test in unit_test_results if test.failed]
 
                 # If all unit tests passed, go into the last success feedback turn

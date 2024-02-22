@@ -146,7 +146,7 @@ class CodeLLM(CodeGenerator):
                 unit_tests=unit_tests,
             )
             for cur_try in range(n_retries):
-                seed = randint(0, 2 ** 62)
+                seed = randint(0, 2**62)
                 sampling_params.seed = seed
                 logging.debug(f"Try {cur_try}")
                 try:
@@ -175,13 +175,28 @@ class CodeLLM(CodeGenerator):
                         f"No function found in the following model response:\n{model_response}"
                     )
                     continue
-                try:
-                    if unit_tests:
-                        self._unit_test(function, unit_tests)
-                except AssertionError as e:
-                    # retry if any unit test fails
-                    logging.warning(f"Try #{cur_try}, unit testing failed:\n{e}")
-                    continue
+
+                if unit_tests:
+                    unit_test_results = self.unit_test(function, unit_tests)
+                    print(model_response)
+                    print(unit_test_results)
+                    if failures := [
+                        result for result in unit_test_results if result.failed
+                    ]:
+                        error_message = (
+                            f"{len(failures)}/{len(unit_test_results)} test failed."
+                        )
+                        for result in failures:
+                            if result.error:
+                                error_message += f"\n{result.x} -> {result.y}, got error {result.error}"
+                            else:
+                                error_message += f"\n{result.x} -> {result.y}, got {result.yhat} instead."
+
+                        # retry if any unit test fails
+                        logging.warning(
+                            f"Try #{cur_try}, unit testing failed.\n{error_message}"
+                        )
+                        continue
 
                 # Break when code passes all tests
                 break
