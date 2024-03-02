@@ -64,14 +64,7 @@ class SelfDebugLLM(CodeGenerator):
     ) -> str:
         feedback = "The code above fails for the following unit test(s):\n"
         for failure in failures:
-            if failure.error:
-                feedback += "{x} -> {y}, raised an error {error}\n".format(
-                    **failure.__dict__
-                )
-            else:
-                feedback += "{x} -> {y}, got {yhat} instead\n".format(
-                    **failure.__dict__
-                )
+            feedback += failure.message + "\n"
         if with_trace:
             feedback += f"Trace the execution of the function on input {failure.x}"
         else:
@@ -86,6 +79,7 @@ class SelfDebugLLM(CodeGenerator):
         use_cached: bool = True,
         n_retries: int = 1,
         sampling_params: SamplingParams = SamplingParams(),
+        namespace: dict = {},
     ) -> Function:
         messages: List = [
             {"role": "system", "content": "You are an expert programming assistant"},
@@ -127,7 +121,7 @@ class SelfDebugLLM(CodeGenerator):
                 except RequestException as e:
                     # retry if server fails to give 200 response
                     error_message = json.loads(e.args[0].decode())
-                    logging.warning(
+                    logging.debug(
                         f"Try #{cur_try}, model query failed: {error_message}"
                     )
                     if not success_feedback:
@@ -136,18 +130,20 @@ class SelfDebugLLM(CodeGenerator):
                 try:
                     if success_feedback:
                         success_turn_function = self.parser.parse_function(
-                            model_response
+                            model_response, namespace=namespace
                         )
                     else:
-                        function = self.parser.parse_function(model_response)
+                        function = self.parser.parse_function(
+                            model_response, namespace=namespace
+                        )
                 except SyntaxError as e:
                     # retry if parsing fails
                     error_message = e.msg
-                    logging.warning(f"Try #{cur_try}, function parsing failed: {e}")
+                    logging.debug(f"Try #{cur_try}, function parsing failed: {e}")
                     if not success_feedback:
                         break
                 except NothingToParseError as e:
-                    logging.warning(f"Try #{cur_try}, {e}")
+                    logging.debug(f"Try #{cur_try}, {e}")
                     logging.debug(
                         f"No function found in the following model response:\n{model_response}"
                     )
@@ -216,7 +212,7 @@ class SelfDebugLLM(CodeGenerator):
                         )
                     except RequestException as e:
                         error_message = json.loads(e.args[0].decode())
-                        logging.warning(
+                        logging.debug(
                             f"Try #{cur_try}, model query failed: {error_message}"
                         )
                         break
@@ -236,7 +232,7 @@ class SelfDebugLLM(CodeGenerator):
                         )
                     except RequestException as e:
                         error_message = json.loads(e.args[0].decode())
-                        logging.warning(
+                        logging.debug(
                             f"Try #{cur_try}, model query failed: {error_message}"
                         )
                         break

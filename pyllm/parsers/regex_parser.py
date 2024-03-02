@@ -16,7 +16,7 @@ class RegExParser(Parser):
     or other dynamically generated Python code.
     """
 
-    def parse_function(self, input_string: str) -> Callable:
+    def parse_function(self, input_string: str, namespace: dict = {}) -> Callable:
         """
         Parses and dynamically executes Python code to define functions from the input string.
 
@@ -56,7 +56,7 @@ class RegExParser(Parser):
             import_statements.append(block)
 
         # Share the current namespace
-        namespace = globals()
+        namespace = {**globals(), **namespace}
 
         for import_statement in import_statements:
             parsed_ast = ast.parse(import_statement, mode="exec")
@@ -65,7 +65,7 @@ class RegExParser(Parser):
 
         # Define all the functions in the LLM output
         function_blocks = []
-        function_pattern = r"(def .+:\n(?:\s+.+\n)*)"
+        function_pattern = r"(def .+:\s*\n(?:\s+.+\n)*)"
         matches = re.finditer(function_pattern, input_string, re.MULTILINE)
 
         for match in matches:

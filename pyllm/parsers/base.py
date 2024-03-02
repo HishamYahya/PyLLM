@@ -1,5 +1,5 @@
 class Parser:
-    def parse_function(self, input_string):
+    def parse_function(self, input_string: str, namespace: dict):
         raise NotImplementedError(
             "The function parsing functionality hasn't been implemented for",
             self.__class__.__name__,

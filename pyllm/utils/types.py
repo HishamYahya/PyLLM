@@ -12,7 +12,7 @@ class SamplingParams:
     Generation parameters following OpenAI's API
     """
 
-    temperature: float = 1.0
+    temperature: float = 0
     top_p: float = 1.0
     n: int = 1
     stop: Optional[Union[str, List[str]]] = None
