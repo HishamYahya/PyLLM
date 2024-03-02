@@ -1,12 +1,12 @@
 from datasets import Dataset
-from dataclasses import dataclass
-from typing import List, Tuple, Iterator
+from dataclasses import dataclass, field
+from typing import List, Tuple, Iterator, Union, Callable
 
 
 @dataclass
 class EvaluationRow:
     prompt: str
-    unit_tests: List[Tuple]
+    unit_tests: List[Union[Callable, Tuple]]
 
 
 class FunctionDataset(Dataset):

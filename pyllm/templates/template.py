@@ -60,5 +60,5 @@ class PromptTemplate:
             object_type=object_type,
             input_types=input_types,
             output_types=output_types,
-            unit_tests=unit_tests,
+            unit_tests=[test for test in unit_tests if not callable(test)],
         )
