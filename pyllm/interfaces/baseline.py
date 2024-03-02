@@ -11,14 +11,16 @@ from requests import RequestException
 from pyllm.clients import Client, OpenAIChatClient
 from pyllm.parsers import Parser, RegExParser
 from pyllm.templates import PromptTemplate
-from pyllm.utils.exceptions import TooManyRetries, NothingToParseError
+from pyllm.templates.jinja import BASELINE_JINJA_TEMPLATE
 from pyllm.interfaces import CodeGenerator
+from pyllm.utils.exceptions import TooManyRetries, NothingToParseError
 from pyllm.utils.types import SamplingParams, Function
 from pyllm.utils.caching import CacheHandler
 from pyllm.utils.registry import METHOD_REGISTRY
 
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
-@METHOD_REGISTRY.register("baseline")
 class CodeLLM(CodeGenerator):
     """
     Facilitates the definition of functions using a language model, with
@@ -97,6 +99,7 @@ class CodeLLM(CodeGenerator):
         use_cached: bool = True,
         n_retries: int = 1,
         sampling_params: SamplingParams = SamplingParams(),
+        namespace: dict = {},
     ) -> Function:
         """
         Defines a function based on a given prompt, optionally using cached
@@ -134,7 +137,9 @@ class CodeLLM(CodeGenerator):
                     from pyllm import parsers
 
                     parser = getattr(parsers, cache[prompt]["parser"])()
-                    function = parser.parse_function(model_response)
+                    function = parser.parse_function(
+                        model_response, namespace=namespace
+                    )
 
         # Query the model if not cached
         if model_response is None:
@@ -148,38 +153,38 @@ class CodeLLM(CodeGenerator):
             for cur_try in range(n_retries):
                 seed = randint(0, 2**62)
                 sampling_params.seed = seed
-                logging.debug(f"Try {cur_try}")
+                logger.debug(f"Try {cur_try}")
                 try:
                     model_response = self.client.query(
                         formatted_prompt, sampling_params=sampling_params
                     )
-                    logging.debug(f"Model response: {model_response}")
+                    logger.debug(f"Model response: {model_response}")
                 except RequestException as e:
                     # retry if server fails to give 200 response
                     error_message = json.loads(e.args[0].decode())
-                    logging.warning(
+                    logger.warning(
                         f"Try #{cur_try}, model query failed: {error_message}"
                     )
                     continue
 
                 try:
-                    function = self.parser.parse_function(model_response)
+                    function = self.parser.parse_function(
+                        model_response, namespace=namespace
+                    )
                 except SyntaxError as e:
                     # retry if parsing fails
                     error_message = e.msg
-                    logging.warning(f"Try #{cur_try}, function parsing failed: {e}")
+                    logger.warning(f"Try #{cur_try}, function parsing failed: {e}")
                     continue
                 except NothingToParseError as e:
-                    logging.warning(f"Try #{cur_try}, {e}")
-                    logging.debug(
+                    logger.warning(f"Try #{cur_try}, {e}")
+                    logger.warning(
                         f"No function found in the following model response:\n{model_response}"
                     )
                     continue
 
                 if unit_tests:
                     unit_test_results = self.unit_test(function, unit_tests)
-                    print(model_response)
-                    print(unit_test_results)
                     if failures := [
                         result for result in unit_test_results if result.failed
                     ]:
@@ -187,13 +192,10 @@ class CodeLLM(CodeGenerator):
                             f"{len(failures)}/{len(unit_test_results)} test failed."
                         )
                         for result in failures:
-                            if result.error:
-                                error_message += f"\n{result.x} -> {result.y}, got error {result.error}"
-                            else:
-                                error_message += f"\n{result.x} -> {result.y}, got {result.yhat} instead."
+                            error_message += "\n" + result.message
 
                         # retry if any unit test fails
-                        logging.warning(
+                        logger.warning(
                             f"Try #{cur_try}, unit testing failed.\n{error_message}"
                         )
                         continue
@@ -223,4 +225,21 @@ class CodeLLM(CodeGenerator):
             model_name=self.client.model_name,
             sampling_params=sampling_params,
             parser=parser,
+        )
+
+
+@METHOD_REGISTRY.register("baseline")
+class BaselineCodeGenerator(CodeLLM):
+    def __init__(
+        self,
+        client: Optional[Client] = None,
+        parser: Optional[Parser] = None,
+        prompt_template: Optional[PromptTemplate] = None,
+    ):
+        super().__init__(
+            client=client,
+            parser=parser,
+            prompt_template=PromptTemplate(
+                jinja_template_string=BASELINE_JINJA_TEMPLATE
+            ),
         )

@@ -8,3 +8,13 @@ Output: {{unit_test[1]}}
 {% endfor %}
 {% endif %}
 """
+
+BASELINE_JINJA_TEMPLATE = """Write a function in Python given the following prompt:\n{{prompt}}
+{% if unit_tests != None and unit_tests|length > 0 %}
+Unit tests:
+{% for unit_test in unit_tests %}
+Input: {{unit_test[0]}}
+Output: {{unit_test[1]}}
+{% endfor %}
+{% endif %}
+"""

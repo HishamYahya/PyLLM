@@ -65,3 +65,25 @@ def test_failed_unit_tests(caplog):
     assert "4" in caplog.text, "y1 not in error"
     assert "10" in caplog.text, "x2 not in error"
     assert "40" in caplog.text, "y2 not in error"
+
+    def _test(function):
+        assert function(1, 4) == (10, 40)
+
+    with caplog.at_level(logging.WARNING):
+        with pytest.raises(TooManyRetries):
+            llm.def_function("", unit_tests=[_test], use_cached=False)
+
+
+def test_generation_with_input_namespace():
+    response = """
+    def use_math():
+        return math.pow(2,2)
+    """
+
+    llm = CodeLLM(client=MockClient(response))
+
+    import math
+
+    function = llm.def_function("", use_cached=False, namespace=locals())
+
+    assert function() == math.pow(2, 2)
